@@ -129,7 +129,25 @@ int nsh_session(FAR struct console_stdio_s *pstate,
 
           if (argc > 2)
             {
+#ifdef CONFIG_ARM_TRUSTRAM_AW_CPU
+              /* The parser edits its input.  Give this invocation its own
+               * bounded buffer instead of writing through task arguments.
+               * cn_line is shared with nested scripts, so it cannot hold
+               * this command.  Never execute a truncated command.
+               */
+
+              char command[CONFIG_NSH_LINELEN];
+
+              if (strlcpy(command, argv[2], sizeof(command)) >= sizeof(command))
+                {
+                  nsh_error(vtbl, "nsh: command exceeds console line size\n");
+                  return EXIT_FAILURE;
+                }
+
+              return nsh_parse(vtbl, command);
+#else
               return nsh_parse(vtbl, argv[2]);
+#endif
             }
           else
             {
